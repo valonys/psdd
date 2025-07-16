@@ -107,17 +107,17 @@ def analyze_data(df):
     completed_in_lifex = completed.intersection(lifex_dal)
     backlog_in_lifex = backlog.intersection(lifex_dal)
 
-    # Create a results DataFrame
-    results = {
-        'Category': ['Insp Plan in Lifex DAL', 'Completed in Lifex DAL', 'Backlog in Lifex DAL'],
-        'Items': [
-            ', '.join(insp_in_lifex) if insp_in_lifex else 'None',
-            ', '.join(completed_in_lifex) if completed_in_lifex else 'None',
-            ', '.join(backlog_in_lifex) if backlog_in_lifex else 'None'
-        ],
-        'Count': [len(insp_in_lifex), len(completed_in_lifex), len(backlog_in_lifex)]
-    }
-    results_df = pd.DataFrame(results)
+    # Create a row-by-row results DataFrame
+    rows = []
+    for item in insp_in_lifex:
+        rows.append({'Category': 'Insp Plan in Lifex DAL', 'Item': item})
+    for item in completed_in_lifex:
+        rows.append({'Category': 'Completed in Lifex DAL', 'Item': item})
+    for item in backlog_in_lifex:
+        rows.append({'Category': 'Backlog in Lifex DAL', 'Item': item})
+    if not rows:
+        rows.append({'Category': 'No Matches', 'Item': 'None'})
+    results_df = pd.DataFrame(rows)
     return results_df
 
 # Sidebar for file upload
@@ -148,11 +148,12 @@ if uploaded_file is not None:
         results_df = analyze_data(df)
         if results_df is not None:
             st.subheader("Analysis Results")
-            st.write("Items from 'Insp Plan', 'Completed', and 'Backlog' that are present in 'Lifex DAL':")
+            st.write("Each row below shows an item from 'Insp Plan', 'Completed', or 'Backlog' that is present in 'Lifex DAL':")
             st.dataframe(results_df, use_container_width=True)
 
             # Optional: Visualize counts
             st.subheader("Visualization")
-            st.bar_chart(results_df.set_index('Category')['Count'])
+            count_df = results_df.groupby('Category').size().reset_index(name='Count')
+            st.bar_chart(count_df.set_index('Category')['Count'])
 else:
     st.info("Please upload a file to begin the analysis.")
